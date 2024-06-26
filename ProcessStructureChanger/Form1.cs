@@ -125,11 +125,11 @@ namespace ProcessStructureChanger
             // Remove o nome do bucket do caminho selecionado
             if (selectedPath.StartsWith(bucketName))
             {
-                selectedPath = selectedPath.Substring(bucketName.Length).TrimStart(Path.DirectorySeparatorChar);
+                selectedPath = selectedPath.Substring(bucketName.Length).TrimStart(Path.DirectorySeparatorChar).Replace("\\", "/");
             }
 
-            // Garante que selectedPath termina com uma barra
-            if (!selectedPath.EndsWith("/"))
+            // Adiciona uma barra no final se o nó for um diretório e não o último nó
+            if (!selectedPath.EndsWith("/") && (selectedNode.Nodes.Count > 0 || !IsLastNode(selectedNode)))
             {
                 selectedPath += "/";
             }
@@ -145,16 +145,31 @@ namespace ProcessStructureChanger
             {
                 // Inclui o nome da pasta selecionada no caminho local
                 string relativePath = obj.Substring(selectedPath.Length);
-                string localFilePath = Path.Combine(localDirectory, selectedPath, relativePath).Replace('/', Path.DirectorySeparatorChar);
+                string localFilePath = Path.Combine(localDirectory, selectedPath.Replace("/", "\\"), relativePath.Replace("/", "\\"));
                 Directory.CreateDirectory(Path.GetDirectoryName(localFilePath));
                 await s3Service.DownloadFileAsync(bucketName, obj, localFilePath);
 
                 // Atualiza a barra de progresso e a lista de arquivos
                 progressBar1.Value++;
-                listBox1.Items.Add($"Downloading {obj} to {localFilePath}");
+                listBox1.Items.Add($"Baixando {obj} para {localFilePath}");
             }
-
-            MessageBox.Show(this, $"Files downloaded to {localDirectory}", "Download Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            progressBar1.Maximum = 0;
+            progressBar1.Value = 0;
+            MessageBox.Show(this, $"Arquivos baixados para {localDirectory}", "Download Completo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        private bool IsLastNode(TreeNode node)
+        {
+            if (node == null || node.Parent == null)
+            {
+                // Se o nó é nulo ou não tem pai, ele pode ser o último nó no nível raiz
+                return node.TreeView.Nodes[node.TreeView.Nodes.Count - 1] == node;
+            }
+            else
+            {
+                // Caso contrário, verifique se é o último nó do seu pai
+                TreeNode parentNode = node.Parent;
+                return parentNode.Nodes[parentNode.Nodes.Count - 1] == node;
+            }
         }
 
         private string GetFullPath(TreeNode node)
