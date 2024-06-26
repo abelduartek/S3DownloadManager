@@ -128,12 +128,6 @@ namespace ProcessStructureChanger
                 selectedPath = selectedPath.Substring(bucketName.Length).TrimStart(Path.DirectorySeparatorChar).Replace("\\", "/");
             }
 
-            // Adiciona uma barra no final se o nó for um diretório e não o último nó
-            if (!selectedPath.EndsWith("/") && (selectedNode.Nodes.Count > 0 || !IsLastNode(selectedNode)))
-            {
-                selectedPath += "/";
-            }
-
             var objects = await s3Service.ListObjectsAsync();
             var filesToDownload = objects.FindAll(obj => obj.StartsWith(selectedPath));
 
@@ -144,8 +138,7 @@ namespace ProcessStructureChanger
             foreach (var obj in filesToDownload)
             {
                 // Inclui o nome da pasta selecionada no caminho local
-                string relativePath = obj.Substring(selectedPath.Length);
-                string localFilePath = Path.Combine(localDirectory, selectedPath.Replace("/", "\\"), relativePath.Replace("/", "\\"));
+                string localFilePath = Path.Combine(localDirectory, obj.Replace('/', Path.DirectorySeparatorChar));
                 Directory.CreateDirectory(Path.GetDirectoryName(localFilePath));
                 await s3Service.DownloadFileAsync(bucketName, obj, localFilePath);
 
